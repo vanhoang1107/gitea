@@ -35,7 +35,7 @@ func Dir(name string) ([]string, error) {
 	customDir := path.Join(setting.CustomPath, "options", name)
 	isDir, err := util.IsDir(customDir)
 	if err != nil {
-		return []string{}, fmt.Errorf("Failed to check if custom directory %s is a directory. %v", err)
+		return []string{}, fmt.Errorf("Failed to check if custom directory %s is a directory. %v", customDir, err)
 	}
 	if isDir {
 		files, err := util.StatDir(customDir, true)

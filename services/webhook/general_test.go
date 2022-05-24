@@ -252,6 +252,20 @@ func pullRequestTestPayload() *api.PullRequestPayload {
 		},
 		Review: &api.ReviewPayload{
 			Content: "good job",
+			OverallComment: &api.Comment{
+				ID:       4,
+				HTMLURL:  "http://localhost:3000/test/repo/issues/2#issuecomment-4",
+				IssueURL: "http://localhost:3000/test/repo/issues/2",
+				Body:     "good job",
+			},
+			Comments: []*api.Comment{
+				{
+					ID:       5,
+					HTMLURL:  "http://localhost:3000/test/repo/issues/2#issuecomment-5",
+					IssueURL: "http://localhost:3000/test/repo/issues/2",
+					Body:     "just need a little bit more",
+				},
+			},
 		},
 	}
 }
