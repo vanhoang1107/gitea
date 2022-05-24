@@ -130,7 +130,24 @@ func TestSlackPayload(t *testing.T) {
 		require.NotNil(t, pl)
 		require.IsType(t, &SlackPayload{}, pl)
 
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request review approved: [#12 Fix bug](http://localhost:3000/test/repo/pulls/12) by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request review approved: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+	})
+
+	t.Run("ReviewComment", func(t *testing.T) {
+		p := pullRequestTestPayload()
+		p.Action = api.HookIssueReviewed
+
+		d := new(SlackPayload)
+		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewComment)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &SlackPayload{}, pl)
+
+		slackPl := pl.(*SlackPayload)
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request review comment: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", slackPl.Text)
+		assert.Len(t, slackPl.Attachments, 2)
+		assert.Equal(t, p.Review.Content, slackPl.Attachments[0].Text)
+		assert.Equal(t, p.Review.Comments[0].Body, slackPl.Attachments[1].Text)
 	})
 
 	t.Run("Repository", func(t *testing.T) {

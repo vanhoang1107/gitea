@@ -258,21 +258,6 @@ func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta 
 	return convertPayloader(s, p, event)
 }
 
-func parseHookPullRequestEventType(event webhook_model.HookEventType) (string, error) {
-	switch event {
-
-	case webhook_model.HookEventPullRequestReviewApproved:
-		return "approved", nil
-	case webhook_model.HookEventPullRequestReviewRejected:
-		return "rejected", nil
-	case webhook_model.HookEventPullRequestComment:
-		return "comment", nil
-
-	default:
-		return "", errors.New("unknown event type")
-	}
-}
-
 func (d *DiscordPayload) createPayload(s *api.User, title, text, url string, color int) *DiscordPayload {
 	return &DiscordPayload{
 		Username:  d.Username,
