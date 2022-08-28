@@ -702,12 +702,11 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, 
 	defer finished()
 
 	var reviewHookType webhook.HookEventType
-
 	switch review.Type {
 	case issues_model.ReviewTypeApprove:
 		reviewHookType = webhook.HookEventPullRequestReviewApproved
 	case issues_model.ReviewTypeComment:
-		reviewHookType = webhook.HookEventPullRequestComment
+		reviewHookType = webhook.HookEventPullRequestReviewComment
 	case issues_model.ReviewTypeReject:
 		reviewHookType = webhook.HookEventPullRequestReviewRejected
 	default:
@@ -726,6 +725,14 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, 
 		log.Error("models.AccessLevel: %v", err)
 		return
 	}
+	var comments = make([]*api.Comment, 0, len(review.CodeComments))
+	for _, lineCommendsMap := range review.CodeComments {
+		for _, lineComments := range lineCommendsMap {
+			for _, cmt := range lineComments {
+				comments = append(comments, convert.ToComment(cmt))
+			}
+		}
+	}
 	if err := webhook_services.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueReviewed,
 		Index:       review.Issue.Index,
@@ -733,8 +740,10 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, 
 		Repository:  convert.ToRepo(review.Issue.Repo, mode),
 		Sender:      convert.ToUser(review.Reviewer, nil),
 		Review: &api.ReviewPayload{
-			Type:    string(reviewHookType),
-			Content: review.Content,
+			Type:           string(reviewHookType),
+			Content:        review.Content,
+			OverallComment: convert.ToComment(comment),
+			Comments:       comments,
 		},
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)

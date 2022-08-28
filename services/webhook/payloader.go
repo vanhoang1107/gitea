@@ -38,8 +38,9 @@ func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_model.H
 		pl, ok := p.(*api.IssueCommentPayload)
 		if ok {
 			return s.IssueComment(pl)
+		} else {
+			return s.PullRequest(p.(*api.PullRequestPayload))
 		}
-		return s.PullRequest(p.(*api.PullRequestPayload))
 	case webhook_model.HookEventPush:
 		return s.Push(p.(*api.PushPayload))
 	case webhook_model.HookEventPullRequest, webhook_model.HookEventPullRequestAssign, webhook_model.HookEventPullRequestLabel,
