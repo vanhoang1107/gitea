@@ -13,8 +13,10 @@ ARG CGO_EXTRA_CFLAGS
 RUN apk --no-cache add build-base git nodejs npm
 
 #Setup repo
-COPY . ${GOPATH}/src/code.gitea.io/gitea
+COPY go.mod go.sum ${GOPATH}/src/code.gitea.io/gitea/
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+RUN go mod download
+COPY . .
 
 #Checkout version if set
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
