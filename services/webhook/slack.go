@@ -218,14 +218,14 @@ func (s *SlackPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, er
 
 	var attachments []SlackAttachment
 	if attachmentText != "" {
-		attachmentText = SlackTextFormatter(p.PullRequest.Body)
-		issueTitle = SlackTextFormatter(issueTitle)
-		attachments = append(attachments, SlackAttachment{
-			Color:     fmt.Sprintf("%x", color),
-			Title:     issueTitle,
-			TitleLink: p.PullRequest.URL,
-			Text:      attachmentText,
-		})
+		attachments = []SlackAttachment{
+			{
+				Color:     fmt.Sprintf("%x", color),
+				Title:     SlackTextFormatter(issueTitle),
+				TitleLink: p.PullRequest.URL,
+				Text:      SlackTextFormatter(attachmentText),
+			},
+		}
 	}
 
 	return s.createPayload(text, attachments), nil
@@ -233,23 +233,57 @@ func (s *SlackPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, er
 
 // Review implements PayloadConvertor Review method
 func (s *SlackPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
-	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
-	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
-	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	var text string
+	var (
+		senderLink = SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+		title      = fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
+		titleLink  = SlackLinkFormatter(p.PullRequest.URL, title)
+		repoLink   = SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+	)
 
-	switch p.Action {
-	case api.HookIssueReviewed:
-		action, err := parseHookPullRequestEventType(event)
-		if err != nil {
-			return nil, err
-		}
-
-		text = fmt.Sprintf("[%s] Pull request review %s: [%s](%s) by %s", repoLink, action, title, titleLink, senderLink)
+	if p.Action != api.HookIssueReviewed {
+		return nil, fmt.Errorf("invalid review action: %s", p.Action)
 	}
-
-	return s.createPayload(text, nil), nil
+	action, err := parseHookPullRequestEventType(event)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		text        = fmt.Sprintf("[%s] Pull request review %s: %s by %s", repoLink, action, titleLink, senderLink)
+		attachments []SlackAttachment
+	)
+	switch event {
+	case webhook_model.HookEventPullRequestReviewComment, webhook_model.HookEventPullRequestComment:
+		attachments = make([]SlackAttachment, len(p.Review.Comments))
+		for i, cmt := range p.Review.Comments {
+			attachments[i] = SlackAttachment{
+				Color:     "#00BAEC",
+				Title:     fmt.Sprintf("Comment #%d", cmt.ID),
+				TitleLink: cmt.HTMLURL,
+				Text:      cmt.Body,
+			}
+		}
+		if p.Review.Content != "" {
+			var (
+				subAttachments = attachments
+				commentNoun    string
+			)
+			if len(subAttachments) > 0 {
+				commentNoun = "Overall comment"
+			} else {
+				commentNoun = "Comment"
+			}
+			overallAttachment := SlackAttachment{
+				Color:     "#001A71",
+				Title:     fmt.Sprintf("%s #%d", commentNoun, p.Review.OverallComment.ID),
+				TitleLink: p.Review.OverallComment.HTMLURL,
+				Text:      p.Review.Content,
+			}
+			attachments = make([]SlackAttachment, 0, 1+len(subAttachments))
+			attachments = append(attachments, overallAttachment)
+			attachments = append(attachments, subAttachments...)
+		}
+	}
+	return s.createPayload(text, attachments), nil
 }
 
 // Repository implements PayloadConvertor Repository method
