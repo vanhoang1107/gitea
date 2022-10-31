@@ -403,8 +403,10 @@ func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 
 // ReviewPayload FIXME
 type ReviewPayload struct {
-	Type    string `json:"type"`
-	Content string `json:"content"`
+	Type           string     `json:"type"`
+	Content        string     `json:"content"`
+	OverallComment *Comment   `json:"-"`
+	Comments       []*Comment `json:"-"`
 }
 
 //  __      __.__ __   .__
@@ -440,12 +442,12 @@ func (p *WikiPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", " ")
 }
 
-//__________                           .__  __
-//\______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
-// |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
-// |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
-// |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
-//        \/     \/|__|              \/                       \/
+// __________                           .__  __
+// \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
+//  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
+//  |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
+//  |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
+//         \/     \/|__|              \/                       \/
 
 // HookRepoAction an action that happens to a repo
 type HookRepoAction string

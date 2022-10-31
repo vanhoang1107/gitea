@@ -679,7 +679,6 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 
 func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	var reviewHookType webhook_module.HookEventType
-
 	switch review.Type {
 	case issues_model.ReviewTypeApprove:
 		reviewHookType = webhook_module.HookEventPullRequestReviewApproved
