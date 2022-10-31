@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"net/url"
@@ -88,6 +89,10 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 	var attachmentText string
 	color := yellowColor
 
+	var (
+		text  string
+		color = yellowColor
+	)
 	switch p.Action {
 	case api.HookIssueOpened:
 		text = fmt.Sprintf("[%s] Pull request opened: %s", repoLink, titleLink)
@@ -224,6 +229,21 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	}
 
 	return text, issueTitle, color
+}
+
+func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {
+	switch event {
+
+	case webhook_module.HookEventPullRequestReviewApproved:
+		return "approved", nil
+	case webhook_module.HookEventPullRequestReviewRejected:
+		return "rejected", nil
+	case webhook_module.HookEventPullRequestReviewComment:
+		return "comment", nil
+
+	default:
+		return "", errors.New("unknown event type")
+	}
 }
 
 // ToHook convert models.Webhook to api.Hook

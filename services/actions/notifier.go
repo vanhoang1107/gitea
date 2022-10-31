@@ -262,7 +262,7 @@ func (n *actionsNotifier) NotifyForkRepository(ctx context.Context, doer *user_m
 	}
 }
 
-func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, _ *issues_model.Comment, _ []*user_model.User) {
+func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, _ []*user_model.User) {
 	ctx = withMethod(ctx, "NotifyPullRequestReview")
 
 	var reviewHookType webhook_module.HookEventType
@@ -290,7 +290,14 @@ func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 		log.Error("models.AccessLevel: %v", err)
 		return
 	}
-
+	var comments = make([]*api.Comment, 0, len(review.CodeComments))
+	for _, lineCommendsMap := range review.CodeComments {
+		for _, lineComments := range lineCommendsMap {
+			for _, cmt := range lineComments {
+				comments = append(comments, convert.ToComment(ctx, cmt))
+			}
+		}
+	}
 	newNotifyInput(review.Issue.Repo, review.Reviewer, reviewHookType).
 		WithRef(review.CommitID).
 		WithPayload(&api.PullRequestPayload{
@@ -300,8 +307,10 @@ func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 			Repository:  convert.ToRepo(ctx, review.Issue.Repo, mode),
 			Sender:      convert.ToUser(ctx, review.Reviewer, nil),
 			Review: &api.ReviewPayload{
-				Type:    string(reviewHookType),
-				Content: review.Content,
+				Type:           string(reviewHookType),
+				Content:        review.Content,
+				OverallComment: convert.ToComment(ctx, comment),
+				Comments:       comments,
 			},
 		}).Notify(ctx)
 }
