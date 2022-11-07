@@ -118,7 +118,7 @@ type CanCommitToBranchResults struct {
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
-//   and branch is not protected for push
+// and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
 	protectedBranch, err := git_model.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
@@ -524,7 +524,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 
 	ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-		IncludeTags: true,
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue, // only draft releases which are created with existing tags
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)

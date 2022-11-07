@@ -55,6 +55,7 @@ func Routes() *web.Route {
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Group("/{username}", func() {
@@ -66,7 +67,7 @@ func Routes() *web.Route {
 			r.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
 			r.Get("/files/{package}/{version}/{filename}", composer.DownloadPackageFile)
 			r.Put("", reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/conan", func() {
 			r.Group("/v1", func() {
 				r.Get("/ping", conan.Ping)
@@ -154,7 +155,7 @@ func Routes() *web.Route {
 					}, conan.ExtractPathParameters)
 				})
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}/{filename}", func() {
 				r.Get("", generic.DownloadPackageFile)
@@ -163,33 +164,35 @@ func Routes() *web.Route {
 					r.Delete("", generic.DeletePackage)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/helm", func() {
 			r.Get("/index.yaml", helm.Index)
 			r.Get("/{filename}", helm.DownloadPackageFile)
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
-			r.Get("/index.json", nuget.ServiceIndex)
-			r.Get("/query", nuget.SearchService)
-			r.Group("/registration/{id}", func() {
-				r.Get("/index.json", nuget.RegistrationIndex)
-				r.Get("/{version}", nuget.RegistrationLeaf)
-			})
-			r.Group("/package/{id}", func() {
-				r.Get("/index.json", nuget.EnumeratePackageVersions)
-				r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
-			})
+			r.Get("/index.json", nuget.ServiceIndex) // Needs to be unauthenticated for the NuGet client.
 			r.Group("", func() {
-				r.Put("/", nuget.UploadPackage)
-				r.Put("/symbolpackage", nuget.UploadSymbolPackage)
-				r.Delete("/{id}/{version}", nuget.DeletePackage)
-			}, reqPackageAccess(perm.AccessModeWrite))
-			r.Get("/symbols/{filename}/{guid:[0-9a-f]{32}}FFFFFFFF/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/query", nuget.SearchService)
+				r.Group("/registration/{id}", func() {
+					r.Get("/index.json", nuget.RegistrationIndex)
+					r.Get("/{version}", nuget.RegistrationLeaf)
+				})
+				r.Group("/package/{id}", func() {
+					r.Get("/index.json", nuget.EnumeratePackageVersions)
+					r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
+				})
+				r.Group("", func() {
+					r.Put("/", nuget.UploadPackage)
+					r.Put("/symbolpackage", nuget.UploadSymbolPackage)
+					r.Delete("/{id}/{version}", nuget.DeletePackage)
+				}, reqPackageAccess(perm.AccessModeWrite))
+				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
+			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
 			r.Group("/@{scope}/{id}", func() {
@@ -216,12 +219,12 @@ func Routes() *web.Route {
 					r.Delete("", npm.DeletePackageTag)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pypi", func() {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
 			r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
@@ -233,7 +236,7 @@ func Routes() *web.Route {
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
 		})
-	}, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+	}, context_service.UserAssignmentWeb(), context.PackageAssignment())
 
 	return r
 }
@@ -254,6 +257,7 @@ func ContainerRoutes() *web.Route {
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
