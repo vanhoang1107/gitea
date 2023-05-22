@@ -252,7 +252,7 @@ func (s *SlackPayload) Review(p *api.PullRequestPayload, event webhook_module.Ho
 		attachments []SlackAttachment
 	)
 	switch event {
-	case webhook_model.HookEventPullRequestReviewComment, webhook_model.HookEventPullRequestComment:
+	case webhook_module.HookEventPullRequestReviewComment, webhook_module.HookEventPullRequestComment:
 		attachments = make([]SlackAttachment, len(p.Review.Comments))
 		for i, cmt := range p.Review.Comments {
 			attachments[i] = SlackAttachment{
