@@ -85,13 +85,11 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	issueTitle := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := linkFormatter(p.PullRequest.URL, issueTitle)
-	var text string
-	var attachmentText string
-	color := yellowColor
 
 	var (
-		text  string
-		color = yellowColor
+		text           string
+		attachmentText string
+		color          = yellowColor
 	)
 	switch p.Action {
 	case api.HookIssueOpened:
