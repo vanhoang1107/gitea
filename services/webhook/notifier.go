@@ -680,6 +680,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 
 func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	var reviewHookType webhook_module.HookEventType
+
 	switch review.Type {
 	case issues_model.ReviewTypeApprove:
 		reviewHookType = webhook_module.HookEventPullRequestReviewApproved
@@ -703,6 +704,14 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 		log.Error("models.AccessLevel: %v", err)
 		return
 	}
+	var comments = make([]*api.Comment, 0, len(review.CodeComments))
+	for _, lineCommendsMap := range review.CodeComments {
+		for _, lineComments := range lineCommendsMap {
+			for _, cmt := range lineComments {
+				comments = append(comments, convert.ToComment(ctx, cmt))
+			}
+		}
+	}
 	if err := PrepareWebhooks(ctx, EventSource{Repository: review.Issue.Repo}, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueReviewed,
 		Index:       review.Issue.Index,
@@ -710,8 +719,10 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 		Repository:  convert.ToRepo(ctx, review.Issue.Repo, mode),
 		Sender:      convert.ToUser(ctx, review.Reviewer, nil),
 		Review: &api.ReviewPayload{
-			Type:    string(reviewHookType),
-			Content: review.Content,
+			Type:           string(reviewHookType),
+			Content:        review.Content,
+			OverallComment: convert.ToComment(ctx, comment),
+			Comments:       comments,
 		},
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
