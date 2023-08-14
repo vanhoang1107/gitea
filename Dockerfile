@@ -15,7 +15,7 @@ RUN apk --no-cache add build-base git nodejs npm
 #Setup repo
 COPY go.mod go.sum ${GOPATH}/src/code.gitea.io/gitea/
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
-RUN go mod download
+RUN go mod download -x
 COPY . .
 
 #Checkout version if set
